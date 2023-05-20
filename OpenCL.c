@@ -60,7 +60,7 @@ char* errCodeToString(int err) {
 	default: return "Unknown";
 	}
 }
-int parallel(uint n, long int* tStart, long int* tEnd, struct timespec * tStart2, struct timespec * tEnd2, uint* maxnum ) {
+int parallel(unsigned long n, long int* tStart, long int* tEnd, struct timespec * tStart2, struct timespec * tEnd2, uint* maxnum ) {
 	cl_int clerr;
 	cl_uint qty_platforms = 0;
 	cl_platform_id* platforms;
@@ -73,56 +73,42 @@ int parallel(uint n, long int* tStart, long int* tEnd, struct timespec * tStart2
 	cl_device_id* ds;
 	cl_program p;
 	cl_kernel k;
-	uint* res = (uint*)malloc(1000 * sizeof(uint));
-	char* program_source = "__kernel void find_len (unsigned number, __global uint * result)" 
+	uint* res = (uint*)malloc(n*10 * sizeof(uint));
+	char* program_source = "__kernel void find_len (unsigned long number, __global unsigned long * result)" 
+	"{"
+		"unsigned long i = get_global_id(0);"
+		"unsigned long q = number+i;"
+		"int x = 0;"
+  	"for (unsigned long k = 1; k < q; k++)"
     	"{"
-    	"long long res = 0;"
-    	"int x = 0;"
-    	"unsigned q = number ;"
-	"int gg = get_globak_id(0);"
-	"if(gg >=100){"
+        	"if (q % k == 0) {"
+            		"unsigned long check_n = k + (q / k);"
+            		"int isPrime = 0;"
+            		"unsigned long j;"
+    
+            	"for (j = 2; j < check_n; j++)"
+            	"{"
+                	"if (check_n % j == 0) {"
+				"isPrime = 1;"
+                    		"break;"
+                	"}"
+            	"}"
+            	"if (isPrime == 0) {"
+                	"continue;"
+            	"}"
+            	"else {"
+			"x = 1;"
+			"break;"
+            	"}"
+        	"}"
+    	"}"
+	"if(x == 0){"
+	"result[i] = q;"
 	"return;"
 	"}"
-    	"while (q>= number)"
-    	"{"
-        "q++;"
-        "x = 0;"
-        "if (q % 2 == 1) {"
-        "x = 1;"
-        "continue;"
-        "}"
-        "long long i = 0;"
-        "for (i = 1; i < q; i++)"
-        "{"
-        "if (q % i == 0) {"
-        "long long checking_number = i + (q / i);"
-        "int isPrime = 0;"
-        "long long j;"
-        "for (j = 2; j < checking_number; j++)"
-        "{"
-        "if (checking_number % j == 0) {"
-        "isPrime = 1;"
-        "x = 1;"
-        "break;"
-        "}"
-        "}"
-        "if (isPrime == 0) {"
-        "continue;"
-        "}"
-        "else {"
-        "x = 1;"
-        "break;"
-        "}"
-        "}"
-        "}"
-        "if (x == 0) {"
-        "result[gg] = q;"
-        "q = -1;"
-        "}"
-	"}"
+	"else{result[i] = 0;}"
 	"}";
-	printf("reb-3");
-	size_t global_work_size[1] = { 40 };
+	size_t global_work_size[1] = { n };
 	size_t cb;
 	int i = -1;
 	clerr = clGetPlatformIDs(0, NULL, &qty_platforms);
@@ -141,7 +127,6 @@ int parallel(uint n, long int* tStart, long int* tEnd, struct timespec * tStart2
 			clerr = clGetDeviceIDs(platforms[ui], CL_DEVICE_TYPE_ALL, qty_devices[ui], devices[ui], NULL);
 		}
 	}
-	printf("rab-4");
 	clerr = CL_SUCCESS;
 	cntx = clCreateContext(0, qty_devices[0], devices[0], NULL, NULL, &clerr);
 	cq = clCreateCommandQueue(cntx, devices[0][0], CL_QUEUE_PROFILING_ENABLE, &clerr);
@@ -167,88 +152,115 @@ int parallel(uint n, long int* tStart, long int* tEnd, struct timespec * tStart2
 		fclose(flog);
 		return 1;
 	}
-	printf("rab-1\n");
-	return 0;
+	clock_gettime(CLOCK_REALTIME, tStart2);
 	k = clCreateKernel(p, "find_len", &clerr);
-	cl_mem result = clCreateBuffer(cntx, CL_MEM_READ_WRITE, n * sizeof(cl_uint), NULL, NULL);
+	cl_mem result = clCreateBuffer(cntx, CL_MEM_READ_WRITE, n * sizeof(unsigned long), NULL, NULL);
 	i = -1;
-	n = (unsigned int) n;
-	printf("rab-2\n");
-	return 0;
-	clSetKernelArg(k, i += 1, sizeof(unsigned), &n);
+	clSetKernelArg(k, i += 1, sizeof(unsigned long), &n);
 	clSetKernelArg(k, i += 1, sizeof(cl_mem), &result);
 	kEvent = clCreateUserEvent(cntx, &clerr);
 	clerr = clEnqueueNDRangeKernel(cq, k, 1, NULL,
 		global_work_size, NULL, 0, NULL, &kEvent);
 	if (clerr != 0)
 		printf("\n%s\n", errCodeToString(clerr));
-	clerr = clEnqueueReadBuffer(cq, result, CL_TRUE, 0, n * sizeof(cl_uint), res, 0, NULL, NULL);//???
+	clerr = clEnqueueReadBuffer(cq, result, CL_TRUE, 0, n * sizeof(uint), res, 0, NULL, NULL);//???
 	clerr = clGetEventProfilingInfo(kEvent, CL_PROFILING_COMMAND_START, sizeof(*tStart), tStart, NULL);
 	clerr = clGetEventProfilingInfo(kEvent, CL_PROFILING_COMMAND_END, sizeof(*tEnd), tEnd, NULL);
-	for(int i = 0; i < n; i++){
-		printf("\nhhhhhh%lu\n", res[i]);
+	int ii = 0;
+	int gg = 0;
+	clock_gettime(CLOCK_REALTIME, tEnd2);
+	while(gg == 0){
+		ii++;
+		if(res[ii] != 0){
+		printf("\nFound number parall: %lld", res[ii]); gg=1;}
 	}
 	clReleaseMemObject(result);
 	clReleaseKernel(k);
 	clReleaseProgram(p);
 	clReleaseCommandQueue(cq);
 	clReleaseContext(cntx);
-	clock_gettime(CLOCK_REALTIME, tStart2);
-	clock_gettime(CLOCK_REALTIME, tEnd2);
 	free(res);
         return 0;
 }
-
-int posled_59(long long number) {
-    if (number % 2 == 1) {
-        return FALSE;
-    }
-
-    long long i = 0;
-    for (i = 1; i < number; i++)
+long long chk_num(long long number) {
+    long long res = 0;
+    int x = 0;
+    long long q = number;
+    while (q>= number)
     {
-        if (number % i == 0) {
-            //проверить что i + number / i - простое
-            long long checking_number = i + (number / i);
-            int isPrime = TRUE;
-            long long j;
+        q++;
+        x = 0;
+        if (q % 2 == 1) {
+            x = 1;
+            continue;
+        }
 
-            for (j = 2; j < checking_number; j++)
-            {
-                if (checking_number % j == 0) {
-                    isPrime = FALSE;
+        long long i = 0;
+        for (i = 1; i < q; i++)
+        {
+            if (q % i == 0) {
+                long long check_n = i + (q / i);
+                int isPrime = TRUE;
+                long long j;
+
+                for (j = 2; j < check_n; j++)
+                {
+                    if (check_n % j == 0) {
+                        isPrime = FALSE;
+                        x = 1;
+                        break;
+                    }
+                }
+
+                if (isPrime) {
+                    continue;
+                }
+                else {
+                    x = 1;
                     break;
                 }
             }
-
-            if (isPrime) {
-                continue;
-            }
-            else {
-                //сумма i + number % i не является простым числом, заканчиваем проверку
-                return FALSE;
-            }
         }
-    }
-    //все делители проверены
-    return TRUE;
-}
-long long chk_num(long long number) {
-    long long res = 0;
-    for (long long q = number + 1; ; q++)
-    {
-        if (posled_59(q)) {
+
+        if (x == 0) {
             res = q;
+            FILE* out = fopen("res.txt", "w");
+            long long i = 0;
+            for (i = 1; i < q; i++)
+            {
+                if (q % i == 0) {
+                    long long checking_number = i + (q / i);
+                    int isPrime = TRUE;
+                    long long j;
+                    fprintf(out, " %lld", i);
+                    for (j = 2; j < checking_number; j++)
+                    {
+                        if (checking_number % j == 0) {
+                            isPrime = FALSE;
+                            x = 1;
+                            break;
+                        }
+                    }
+
+                    if (isPrime) {
+                        continue;
+                    }
+                    else {
+                        x = 1;
+                        break;
+                    }
+                }
+            }
+            fclose(out);
+            q = -1;
             return res;
-            break;
         }
     }
 }
-
 int main()
 {
-    printf("Enter N:\n");//собираем параметры задачи
-    long long N;
+    printf("Enter N:\n");
+    unsigned long N;
     scanf("%lld", &N);
 	long int tStart = 0l;
 	long int tEnd = 0l;
@@ -260,22 +272,22 @@ int main()
 	uint degree= 0;
 	uint nump = 0;
 	uint nums = 0;
-    long long* resultArray = (long long*)malloc(131071 * sizeof(long long));
-    //ПАРАЛЛЕЛЬНАЯ ПРОГРАММА
-    //ПОСЛЕДОВАТЕЛЬНАЯ ПРОГРАММА
-	parallel(N, &tStart, &tEnd, &tStart2, &tEnd2, &nump);
+    //ПОСЛЕДОВАТЕЛЬНАЯ 
     clock_gettime(CLOCK_REALTIME, &tStart3);
     long long q = 0;
     long long seq_number_result = 0;
     seq_number_result = chk_num(N);
     clock_gettime(CLOCK_REALTIME, &tEnd3);
-    ///////////////////////////////////////СЧИТАЕМ ВРЕМЯ, ВЫВОДИМ РЕЗУЛЬТАТЫ
+	printf("...");
+
+    //ПАРАЛЛЕЛЬНАЯ 
+	parallel(N, &tStart, &tEnd, &tStart2, &tEnd2, &nump);
+    //результаты
     long long tt = 1000000000 * (tEnd2.tv_sec - tStart2.tv_sec) + (tEnd2.tv_nsec - tStart2.tv_nsec);
     long long tk = 1000000000 * (tEnd3.tv_sec - tStart3.tv_sec) + (tEnd3.tv_nsec - tStart3.tv_nsec);
 
-    printf("\nFound number seq: %lld", seq_number_result);
-    printf("\nTime par: %lld ns", tt);
-    printf("\nTime seq: %lld ns\n", tk);
-    free(resultArray);
+    printf("\nFound number posled: %lld", seq_number_result);
+    printf("\nTime parall: %lld ns", tt);
+    printf("\nTime posled: %lld ns\n", tk);
     return 0;
 }
