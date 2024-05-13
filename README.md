@@ -1,10 +1,9 @@
 # OPENMP, CUDA, MPI, OPENCL
 
-OPENMP - Any number n greater than one generates a sequence of the form:
-ni+1 = (ni % 2 == 0? ni / 2 : 3 * ni + 1), the last element of which is 1 (for example: 13->40->20->10->5->16->8->4->2->1). Find the largest number, smaller than the given N, that generates the longest such sequence.
+OPENMP — Любое число n больше единицы генерирует последовательность вида: ni+1 = (ni % 2 == 0? ni/2 : 3 * ni + 1), последний элемент которой равен 1 (например: 13 ->40->20->10->5->16->8->4->2->1). Найдите наибольшее число, меньшее заданного N, которое порождает самую длинную такую ​​последовательность.
 
-CUDA - Inverse matrix
+CUDA — обратная матрица
 
-OPENCL = Find the smallest number n greater than a given N, for which the sum of any of its divisors d with the result of division n/d is a prime number (this is the number 30, which has divisors 1, 2, 3, 5, 6, 10, 15, 30)
+OPENCL = Найдите наименьшее число n, большее заданного N, для которого сумма любых его делителей d с результатом деления n/d является простым числом (это число 30, имеющее делители 1, 2, 3). , 5, 6, 10, 15, 30)
 
-MPI - Solving a System of Linear Algebraic Equations by the Gauss-Seidel Method
+MPI - Решение системы линейных алгебраических уравнений методом Гаусса-Зейделя
